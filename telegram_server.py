@@ -109,7 +109,7 @@ class TELEkash:
             self.bot.send_message(message.chat.id, start_text, reply_markup=markup, parse_mode='MARKDOWN')
 
         @self.bot.message_handler(func=lambda message: message.text == "Очистить контекст")
-        def generate_message(message):
+        def clear_context(message):
 
             markup = update_keyboard(message)
             try:
@@ -154,8 +154,13 @@ class TELEkash:
 
                 list_messages = []
                 for mes in history_messages:
-                    role = "assistant" if mes["is_bot"] else "user"
-                    list_messages.append({"role": role, "condition": "GPT4 Correct", "content": mes["text"]})
+                    if len(mes["text"]) > 0:
+                        role = "assistant" if mes["is_bot"] else "user"
+                        list_messages.append({"role": role, "condition": "GPT4 Correct", "content": mes["text"]})
+
+                if len(list_messages) < 1:
+                    clear_context(message)
+                    raise Exception("Context empty")
 
                 r = requests.post(f'http://{self.gpt_host}/v1/chat/completions', json={
                     "model": self.name_model,
@@ -190,15 +195,15 @@ class TELEkash:
             except Exception as e:
                 response_text = "Ошибка в ответе. Попробуйте еще раз."
                 self.bot.send_message(message.chat.id, response_text, reply_markup=markup)
-                logger.critical(e)
+                logger.error(e)
 
-        def send_message_with_split(message_chat_id, text, reply_markup=None, max_len_response=3000, str_line='\n\n', only_split=False):
+        def send_message_with_split(message_chat_id, text, reply_markup=None, max_len_response=3000, str_line='\n', only_split=False):
 
             if len(text) < max_len_response and not only_split:
                 try:
                     self.bot.send_message(message_chat_id, text, reply_markup=reply_markup, parse_mode='MARKDOWN')
                 except Exception as e:
-                    logger.critical(e)
+                    logger.error(e)
                     send_message_with_split(message_chat_id=message_chat_id,
                                             text=text,
                                             reply_markup=reply_markup,
@@ -212,10 +217,10 @@ class TELEkash:
                     part_res_text += part + str_line
                     if len(part_res_text) > max_len_response:
                         part_res_text = part_res_text[:-len(str(part + str_line))]
-                        self.bot.send_message(message_chat_id, part_res_text, reply_markup=reply_markup)
+                        self.bot.send_message(message_chat_id, part_res_text, reply_markup=reply_markup, parse_mode=None)
                         part_res_text = part + str_line
                 if part_res_text != '':
-                    self.bot.send_message(message_chat_id, part_res_text, reply_markup=reply_markup)
+                    self.bot.send_message(message_chat_id, part_res_text, reply_markup=reply_markup, parse_mode=None)
 
         def update_keyboard(message):
             markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
