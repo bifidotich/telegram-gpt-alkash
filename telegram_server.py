@@ -8,9 +8,12 @@ import configparser
 from datetime import datetime
 
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('config.ini', encoding='utf-8')
 
 log_path = config.get('LOCAL', 'LOGS_PATH')
+debug = config.getboolean('LOCAL', 'DEBUG')
+level_logging = logging.INFO if debug else logging.CRITICAL
+name_bot = config.get('BOT', 'NAME_BOT')
 log_name = ''
 
 
@@ -29,7 +32,7 @@ def update_loger(check_log_name):
     if new_log_name != check_log_name:
         log_name = str(new_log_name)
         track_dir(log_name)
-        logging.basicConfig(level=logging.INFO, filename=log_name, format="%(asctime)s %(levelname)s %(message)s")
+        logging.basicConfig(level=level_logging, filename=log_name, format="%(asctime)s %(levelname)s %(message)s")
         logger = logging.getLogger(__name__)
 
 
@@ -105,7 +108,7 @@ class TELEkash:
         def start(message):
 
             markup = update_keyboard(message)
-            start_text = "AlkashGPT готов"
+            start_text = f"{name_bot} готов"
             self.bot.send_message(message.chat.id, start_text, reply_markup=markup, parse_mode='MARKDOWN')
 
         @self.bot.message_handler(func=lambda message: message.text == "Очистить контекст")
@@ -195,7 +198,7 @@ class TELEkash:
             except Exception as e:
                 response_text = "Ошибка в ответе. Попробуйте еще раз."
                 self.bot.send_message(message.chat.id, response_text, reply_markup=markup)
-                logger.error(e)
+                logger.critical(e)
 
         def send_message_with_split(message_chat_id, text, reply_markup=None, max_len_response=3000, str_line='\n', only_split=False):
 
