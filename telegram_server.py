@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import queue
 import logging
@@ -231,4 +232,9 @@ class TELEkash:
             return markup
 
     def poll(self):
-        self.bot.polling(none_stop=True, interval=0)
+        while True:
+            try:
+                self.bot.polling(none_stop=True, interval=0)
+            except Exception as e:
+                logger.critical(e)
+                time.sleep(10)
